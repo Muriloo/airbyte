@@ -27,6 +27,7 @@ package io.airbyte.server.handlers;
 import io.airbyte.api.model.ImportRead;
 import io.airbyte.api.model.ImportRead.StatusEnum;
 import io.airbyte.commons.io.Archives;
+import io.airbyte.commons.io.FileTtlManager;
 import io.airbyte.commons.lang.Exceptions;
 import io.airbyte.config.ConfigSchema;
 import io.airbyte.config.DestinationConnection;
@@ -60,8 +61,10 @@ public class ArchiveHandler {
 
   private final String version;
   private final ConfigRepository configRepository;
+  private final FileTtlManager fileTtlManager;
 
-  public ArchiveHandler(final String version, final ConfigRepository configRepository) {
+  public ArchiveHandler(final String version, final ConfigRepository configRepository, final FileTtlManager fileTtlManager) {
+    this.fileTtlManager = fileTtlManager;
     this.version = version;
     this.configRepository = configRepository;
   }
@@ -70,7 +73,7 @@ public class ArchiveHandler {
     try {
       final Path tempFolder = Files.createTempDirectory("airbyte_archive");
       final File archive = Files.createTempFile(ARCHIVE_FILE_NAME, ".tar.gz").toFile();
-      archive.deleteOnExit();
+      fileTtlManager.registerTtl(archive.toPath());
       try {
         exportVersionFile(tempFolder);
         exportAirbyteConfig(tempFolder);
